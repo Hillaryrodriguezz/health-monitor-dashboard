@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Interactivo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg-dark: #1a1b1e;
+            --bg-card: #25262b;
+            --text: #e4e5e7;
+            --text-secondary: #a1a1aa;
+            --border: #2e2f33;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: var(--bg-card);
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .chart-container {
+            padding: 1.5rem;
+            height: 400px;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 1.5rem;
+        }
+
+        .input-box {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .input-box input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            background-color: var(--bg-dark);
+            color: var(--text);
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .input-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .input-box button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .input-box button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            background-color: var(--bg-dark);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            padding: 1rem;
+        }
+
+        .chat-message {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            background-color: var(--bg-card);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .vital-signs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .vital-sign {
+            background-color: var(--bg-card);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .vital-sign.hidden {
+            display: none;
+        }
+
+        .vital-sign-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .vital-sign-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .vital-sign-unit {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Monitor de Signos Vitales</h1>
+    </header>
+    
+    <div class="container">
+        <div class="vital-signs">
+            <div class="vital-sign" data-name="presión sistólica">
+                <div class="vital-sign-label">Presión Sistólica</div>
+                <div class="vital-sign-value">120</div>
+                <div class="vital-sign-unit">mmHg</div>
+            </div>
+            <div class="vital-sign" data-name="presión diastólica">
+                <div class="vital-sign-label">Presión Diastólica</div>
+                <div class="vital-sign-value">80</div>
+                <div class="vital-sign-unit">mmHg</div>
+            </div>
+            <div class="vital-sign" data-name="ritmo cardíaco">
+                <div class="vital-sign-label">Ritmo Cardíaco</div>
+                <div class="vital-sign-value">75</div>
+                <div class="vital-sign-unit">BPM</div>
+            </div>
+            <div class="vital-sign" data-name="oxígeno sangre">
+                <div class="vital-sign-label">Oxígeno en Sangre</div>
+                <div class="vital-sign-value">98</div>
+                <div class="vital-sign-unit">%</div>
+            </div>
+            <div class="vital-sign" data-name="ritmo respiratorio">
+                <div class="vital-sign-label">Ritmo Respiratorio</div>
+                <div class="vital-sign-value">16</div>
+                <div class="vital-sign-unit">resp/min</div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Gráfico de Tendencias</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Filtro de Signos Vitales</h2>
+                </div>
+                <div class="chat-container">
+                    <div class="input-box">
+                        <input 
+                            type="text" 
+                            id="inputMessage" 
+                            placeholder="Escribe el signo vital a mostrar (ej: presión, ritmo, oxígeno)..."
+                            onkeypress="if(event.key === 'Enter') sendMessage()"
+                        >
+                        <button onclick="sendMessage()">Filtrar</button>
+                    </div>
+                    <div class="chat-box" id="chat"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('chart').getContext('2d');
+        const chat = document.getElementById('chat');
+        const inputMessage = document.getElementById('inputMessage');
+
+        // Configure Chart.js defaults
+        Chart.defaults.color = '#e4e5e7';
+        Chart.defaults.borderColor = '#2e2f33';
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { 
+                        label: 'Systolic',
+                        borderColor: '#ef4444',
+                        backgroundColor: '#ef4444',
+                        data: [],
+                        fill: false,
+                        hidden: true,
+                        tension: 0.4
+                    },
+                    { 
+                        label: 'Diastolic',
+                        borderColor: '#3b82f6',
+                        backgroundColor: '#3b82f6',
+                        data: [],
+                        fill: false,
+                        hidden: true,
+                        tension: 0.4
+                    },
+                    { 
+                        label: 'Heart Rate',
+                        borderColor: '#22c55e',
+                        backgroundColor: '#22c55e',
+                        data: [],
+                        fill: false,
+                        hidden: true,
+                        tension: 0.4
+                    },
+                    { 
+                        label: 'Blood Oxygen',
+                        borderColor: '#a855f7',
+                        backgroundColor: '#a855f7',
+                        data: [],
+                        fill: false,
+                        hidden: true,
+                        tension: 0.4
+                    },
+                    { 
+                        label: 'Breathing Rhythm',
+                        borderColor: '#f97316',
+                        backgroundColor: '#f97316',
+                        data: [],
+                        fill: false,
+                        hidden: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1b1e',
+                        titleColor: '#e4e5e7',
+                        bodyColor: '#e4e5e7',
+                        borderColor: '#2e2f33',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: true,
+                        usePointStyle: true
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Tiempo',
+                            color: '#a1a1aa',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            display: true,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            maxRotation: 0
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Valor',
+                            color: '#a1a1aa',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            display: true,
+                            drawBorder: false
+                        }
+                    }
+                }
+            }
+        });
+
+        const ws = new WebSocket('ws://localhost:8080');
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message';
+                messageDiv.innerText = `🔹 ${data.message}`;
+                chat.appendChild(messageDiv);
+                chat.scrollTop = chat.scrollHeight;
+
+                // Update vital signs cards if the data contains those values
+                updateVitalSigns(data);
+            } else {
+                const time = new Date(data.time).toLocaleTimeString();
+
+                if (chart.data.labels.length > 20) {
+                    chart.data.labels.shift();
+                    chart.data.datasets.forEach(dataset => dataset.data.shift());
+                }
+
+                chart.data.labels.push(time);
+                chart.data.datasets[0].data.push(data.systolic);
+                chart.data.datasets[1].data.push(data.diastolic);
+                chart.data.datasets[2].data.push(data.heartRate);
+                chart.data.datasets[3].data.push(data.bloodOxygen);
+                chart.data.datasets[4].data.push(data.breathingRhythm);
+
+                chart.data.datasets.forEach((dataset, index) => {
+                    dataset.hidden = data[Object.keys(data)[index + 1]] === null;
+                });
+
+                chart.update();
+                updateVitalSigns(data);
+            }
+        };
+
+        function updateVitalSigns(data) {
+            const vitalSigns = document.querySelectorAll('.vital-sign-value');
+            if (data.systolic) vitalSigns[0].textContent = data.systolic;
+            if (data.diastolic) vitalSigns[1].textContent = data.diastolic;
+            if (data.heartRate) vitalSigns[2].textContent = data.heartRate;
+            if (data.bloodOxygen) vitalSigns[3].textContent = data.bloodOxygen;
+            if (data.breathingRhythm) vitalSigns[4].textContent = data.breathingRhythm;
+        }
+
+        function sendMessage() {
+            const text = inputMessage.value.trim();
+            if (text) {
+                ws.send(text);
+                inputMessage.value = '';
+            }
+        }
+
+        ws.onopen = () => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            messageDiv.innerText = '🟢 Conectado al servidor';
+            chat.appendChild(messageDiv);
+        };
+
+        ws.onclose = () => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            messageDiv.innerText = '🔴 Desconectado del servidor';
+            chat.appendChild(messageDiv);
+        };
+    </script>
+</body>
+</html>
